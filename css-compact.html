@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSS Per‑Rule One‑Line Formatter</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: #121a2b;
+        --muted: #9bb0d3;
+        --text: #e6ecff;
+        --accent: #6aa4ff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #1c2742;
+        position: sticky;
+        top: 0;
+        backdrop-filter: saturate(140%) blur(6px);
+        background: linear-gradient(
+          0deg,
+          rgba(11, 18, 32, 0.6),
+          rgba(11, 18, 32, 0.9)
+        );
+      }
+      header h1 {
+        margin: 0 0 6px;
+        font-size: 18px;
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+      }
+      main {
+        padding: 20px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      @media (min-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid #1c2742;
+        border-radius: 16px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      label {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        color: var(--muted);
+      }
+      textarea {
+        width: 100%;
+        min-height: 320px;
+        resize: vertical;
+        background: #0e1526;
+        color: var(--text);
+        border: 1px solid #1e2a49;
+        border-radius: 12px;
+        padding: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12.5px;
+      }
+      button,
+      .file {
+        background: #111a2e;
+        color: var(--text);
+        border: 1px solid #233056;
+        border-radius: 12px;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: 0.15s ease;
+      }
+      button:hover,
+      .file:hover {
+        background: #15203a;
+      }
+      .primary {
+        background: var(--accent);
+        color: #06122a;
+        border-color: transparent;
+        font-weight: 600;
+      }
+      .primary:hover {
+        filter: brightness(1.06);
+      }
+      .ghost {
+        background: transparent;
+        border-color: #233056;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .footer {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      .small {
+        font-size: 12px;
+      }
+      .badge {
+        background: #0e3a7a;
+        color: #cfe3ff;
+        border: 1px solid #1f58b9;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 11px;
+      }
+      .hint {
+        color: #a8b6d8;
+      }
+      .spacer {
+        flex: 1;
+      }
+      input[type="file"] {
+        display: none;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
+      .group {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 10px;
+        border: 1px solid #233056;
+        border-radius: 12px;
+        background: #0d1730;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        CSS Per‑Rule One‑Line Formatter <span class="badge">offline</span>
+      </h1>
+      <p class="small">
+        셀렉터 <span class="mono">{ ... }</span> 블록을 <strong>한 줄</strong>씩
+        정리 + <strong>단위 변환(px↔rem)</strong> +
+        <strong>속성 우선순위 정렬</strong>.
+      </p>
+    </header>
+    <main>
+      <div class="row" style="margin-bottom: 12px">
+        <label
+          ><input type="checkbox" id="autoPreview" checked /> 실시간 변환</label
+        >
+        <label title="주석 /* ... */ 제거"
+          ><input type="checkbox" id="optComments" checked /> 주석 제거</label
+        >
+        <label title="여러 공백/개행을 하나로 축소"
+          ><input type="checkbox" id="optWhitespace" checked /> 공백 축소</label
+        >
+        <label title="기호 주변 공백 제거: { } : ; , 등"
+          ><input type="checkbox" id="optTightSymbols" checked /> 기호 공백
+          제거</label
+        >
+        <label title="블록 끝 ;} 중 ; 제거"
+          ><input type="checkbox" id="optTrimSemicolon" checked /> 마지막
+          세미콜론 제거</label
+        >
+        <span class="spacer"></span>
+        <div class="group" title="단위 변환 (배타)">
+          <label
+            ><input
+              type="radio"
+              name="unitMode"
+              id="modeNone"
+              value=""
+              checked
+            />
+            변환 안 함</label
+          >
+          <label
+            ><input
+              type="radio"
+              name="unitMode"
+              id="modePx2Rem"
+              value="px2rem"
+            />
+            px → rem</label
+          >
+          <input
+            type="number"
+            id="pxBase"
+            value="16"
+            min="1"
+            style="width: 64px"
+          />px
+          <label
+            ><input
+              type="radio"
+              name="unitMode"
+              id="modeRem2Px"
+              value="rem2px"
+            />
+            rem → px</label
+          >
+          <input
+            type="number"
+            id="remBase"
+            value="16"
+            min="1"
+            style="width: 64px"
+          />px
+        </div>
+        <span class="spacer"></span>
+        <div class="group" title="CSS 속성 정렬">
+          <label><input type="checkbox" id="optSortProps" /> 속성 정렬</label>
+          <select id="sortPreset">
+            <option value="concentric" selected>Concentric-like (추천)</option>
+          </select>
+        </div>
+        <span class="spacer"></span>
+        <button class="ghost" id="btnSwap" title="입력과 출력을 교체">
+          입↔출 교체
+        </button>
+        <button class="ghost" id="btnClear">초기화</button>
+        <label class="file"
+          ><input type="file" id="fileIn" accept=".css" />CSS 열기</label
+        >
+        <button class="primary" id="btnDownload">.compact.css 저장</button>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <div class="row">
+            <strong>입력 CSS</strong><span class="spacer"></span
+            ><span class="hint small">붙여넣기 또는 파일 열기</span>
+          </div>
+          <textarea
+            id="input"
+            placeholder="/* 여기에 CSS를 붙여넣으세요 */"
+          ></textarea>
+        </section>
+        <section class="card">
+          <div class="row">
+            <strong>결과 (셀렉터별 한 줄)</strong><span class="spacer"></span
+            ><button id="btnCopy">복사</button>
+          </div>
+          <textarea
+            id="output"
+            readonly
+            placeholder="여기에 결과가 표시됩니다"
+          ></textarea>
+          <div class="footer">
+            파이프라인: <span class="mono">minify</span> →
+            <span class="mono">속성 정렬</span> →
+            <span class="mono">단위(px↔rem)</span> →
+            <span class="mono">'}' 뒤 개행</span>
+          </div>
+        </section>
+      </div>
+
+      <p class="small muted" style="margin-top: 14px">
+        주의: 간단한 정규식 기반 포맷터입니다. <code>@media</code> 내부의 중첩
+        룰은 속성 정렬 대상에서 제외됩니다(단순 룰은 정렬).
+      </p>
+    </main>
+
+    <script>
+      var $ = function (s) {
+        return document.querySelector(s);
+      };
+
+      var stripComments = function (css) {
+        return css.replace(/\/\*[\s\S]*?\*\//g, "");
+      };
+      var collapseWhitespace = function (css) {
+        return css.replace(/\s+/g, " ");
+      };
+      var tightenSymbols = function (css) {
+        return css.replace(/\s*([{}:;,>~+()\[\]=])\s*/g, "$1");
+      };
+      var trimSemicolonBeforeBrace = function (css) {
+        return css.replace(/;}/g, "}");
+      };
+
+      // px -> rem
+      function pxToRem(css, base, precision) {
+        if (!precision && precision !== 0) precision = 3;
+        return css.replace(/(-?\d*\.?\d+)px\b/g, function (m, num) {
+          var n = parseFloat(num);
+          if (!isFinite(n)) return m;
+          if (Math.abs(n) < 1e-8) return "0";
+          var v = n / (base || 16);
+          var fixed = v.toFixed(precision);
+          var trimmed = fixed
+            .replace(/\.0+$/, "")
+            .replace(/\.(\d*?)0+$/, ".$1");
+          return trimmed + "rem";
+        });
+      }
+
+      // rem -> px
+      function remToPx(css, base, precision) {
+        if (!precision && precision !== 0) precision = 3;
+        return css.replace(/(-?\d*\.?\d+)rem\b/g, function (m, num) {
+          var n = parseFloat(num);
+          if (!isFinite(n)) return m;
+          var v = n * (base || 16);
+          var fixed = v.toFixed(precision);
+          var trimmed = fixed
+            .replace(/\.0+$/, "")
+            .replace(/\.(\d*?)0+$/, ".$1");
+          return trimmed + "px";
+        });
+      }
+
+      function minifyBasic(css, opts) {
+        var s = css;
+        if (opts.comments) s = stripComments(s);
+        if (opts.whitespace) s = collapseWhitespace(s);
+        if (opts.tightSymbols) s = tightenSymbols(s);
+        if (opts.trimSemicolon) s = trimSemicolonBeforeBrace(s);
+        return s.trim();
+      }
+
+      // ===== 속성 정렬 (간단 파서) =====
+      var PRESET_ORDERS = {
+        concentric: [
+          "position",
+          "inset",
+          "top",
+          "right",
+          "bottom",
+          "left",
+          "z-index",
+          "display",
+          "float",
+          "clear",
+          "box-sizing",
+          "flex",
+          "flex-direction",
+          "flex-wrap",
+          "flex-flow",
+          "flex-grow",
+          "flex-shrink",
+          "flex-basis",
+          "grid",
+          "grid-template",
+          "grid-template-areas",
+          "grid-template-columns",
+          "grid-template-rows",
+          "grid-auto-flow",
+          "grid-auto-columns",
+          "grid-auto-rows",
+          "place-items",
+          "place-content",
+          "align-items",
+          "justify-items",
+          "align-content",
+          "justify-content",
+          "align-self",
+          "justify-self",
+          "order",
+          "gap",
+          "row-gap",
+          "column-gap",
+          "width",
+          "min-width",
+          "max-width",
+          "height",
+          "min-height",
+          "max-height",
+          "aspect-ratio",
+          "margin",
+          "margin-top",
+          "margin-right",
+          "margin-bottom",
+          "margin-left",
+          "padding",
+          "padding-top",
+          "padding-right",
+          "padding-bottom",
+          "padding-left",
+          "overflow",
+          "overflow-x",
+          "overflow-y",
+          "clip",
+          "clip-path",
+          "object-fit",
+          "object-position",
+          "visibility",
+          "opacity",
+          "background",
+          "background-color",
+          "background-image",
+          "background-position",
+          "background-size",
+          "background-repeat",
+          "border",
+          "border-top",
+          "border-right",
+          "border-bottom",
+          "border-left",
+          "border-width",
+          "border-style",
+          "border-color",
+          "border-radius",
+          "outline",
+          "outline-offset",
+          "box-shadow",
+          "filter",
+          "backdrop-filter",
+          "color",
+          "font",
+          "font-style",
+          "font-variant",
+          "font-weight",
+          "font-stretch",
+          "font-size",
+          "line-height",
+          "font-family",
+          "text-align",
+          "text-indent",
+          "text-transform",
+          "text-decoration",
+          "text-decoration-color",
+          "text-decoration-thickness",
+          "text-underline-offset",
+          "letter-spacing",
+          "word-break",
+          "white-space",
+          "text-overflow",
+          "list-style",
+          "cursor",
+          "pointer-events",
+          "user-select",
+          "touch-action",
+          "transform",
+          "transform-origin",
+          "will-change",
+          "transition",
+          "transition-property",
+          "transition-duration",
+          "transition-timing-function",
+          "transition-delay",
+          "animation",
+          "animation-name",
+          "animation-duration",
+          "animation-timing-function",
+          "animation-delay",
+          "animation-iteration-count",
+          "animation-direction",
+          "animation-fill-mode",
+          "animation-play-state",
+          "scroll-behavior",
+          "scroll-snap-type",
+          "scroll-snap-align",
+          "scroll-margin",
+          "scroll-margin-top",
+          "scroll-margin-right",
+          "scroll-margin-bottom",
+          "scroll-margin-left",
+          "scroll-padding",
+          "scroll-padding-top",
+          "scroll-padding-right",
+          "scroll-padding-bottom",
+          "scroll-padding-left",
+          "content",
+        ],
+      };
+
+      function sortDeclarationsBlock(body, orderArr) {
+        var lines = body.split(";");
+        var arr = [];
+        for (var i = 0; i < lines.length; i++) {
+          var raw = (lines[i] || "").trim();
+          if (!raw) continue;
+          var colon = raw.indexOf(":");
+          if (colon === -1) {
+            arr.push({ key: "~zzz", raw: raw });
+            continue;
+          }
+          var prop = raw.slice(0, colon).trim().toLowerCase();
+          var value = raw.slice(colon + 1).trim();
+          var baseProp = prop.replace(/^-[a-z]+-/, "");
+          var idx = orderArr.indexOf(baseProp);
+          var key =
+            idx === -1
+              ? "~" + baseProp
+              : "000".slice(String(idx).length) + String(idx) + "-" + baseProp;
+          arr.push({ key: key, raw: prop + ":" + value });
+        }
+        arr.sort(function (a, b) {
+          return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+        });
+        var out = [];
+        for (var j = 0; j < arr.length; j++) {
+          out.push(arr[j].raw);
+        }
+        return out.join(";");
+      }
+
+      function sortCssDeclarations(css, preset) {
+        var orderArr = PRESET_ORDERS[preset] || PRESET_ORDERS.concentric;
+        return css.replace(
+          /([^{}]+)\{([^{}]*)\}/g,
+          function (match, sel, body) {
+            if (/^\s*@/i.test(sel)) return match; // at-rule은 건너뜀 (중첩 블록은 별도 파싱 필요)
+            var sorted = sortDeclarationsBlock(body, orderArr);
+            return sel + "{" + sorted + "}";
+          }
+        );
+      }
+
+      function transformUnits(css, mode, base) {
+        if (mode === "px2rem") return pxToRem(css, base, 3);
+        if (mode === "rem2px") return remToPx(css, base, 3);
+        return css;
+      }
+
+      function perRuleOneLine(css, opts) {
+        var s = minifyBasic(css, opts);
+        if (opts.sortProps)
+          s = sortCssDeclarations(s, opts.sortPreset || "concentric");
+        s = transformUnits(s, opts.unit, opts.base);
+        return s.replace(/}\s*/g, "}\n");
+      }
+
+      function getUnitMode() {
+        if ($("#modePx2Rem").checked) return "px2rem";
+        if ($("#modeRem2Px").checked) return "rem2px";
+        return "";
+      }
+      function getUnitBase(mode) {
+        if (mode === "px2rem") return parseFloat($("#pxBase").value) || 16;
+        if (mode === "rem2px") return parseFloat($("#remBase").value) || 16;
+        return 16;
+      }
+
+      function run() {
+        var unit = getUnitMode();
+        var opts = {
+          comments: $("#optComments").checked,
+          whitespace: $("#optWhitespace").checked,
+          tightSymbols: $("#optTightSymbols").checked,
+          trimSemicolon: $("#optTrimSemicolon").checked,
+          sortProps: $("#optSortProps").checked,
+          sortPreset: $("#sortPreset") ? $("#sortPreset").value : "concentric",
+          unit: unit,
+          base: getUnitBase(unit),
+        };
+        $("#output").value = perRuleOneLine($("#input").value, opts);
+        localStorage.setItem("css-compact-input", $("#input").value);
+        localStorage.setItem("css-compact-unit", unit);
+        localStorage.setItem("css-compact-sort", opts.sortProps ? "1" : "0");
+        localStorage.setItem("css-compact-sortPreset", opts.sortPreset);
+        if (unit === "px2rem")
+          localStorage.setItem("css-compact-pxBase", String(opts.base));
+        if (unit === "rem2px")
+          localStorage.setItem("css-compact-remBase", String(opts.base));
+      }
+
+      // 이벤트
+      $("#input").addEventListener("input", function () {
+        if ($("#autoPreview").checked) run();
+      });
+      var controls = document.querySelectorAll(
+        'input[type="checkbox"], input[type="radio"], #pxBase, #remBase, #sortPreset'
+      );
+      for (var i = 0; i < controls.length; i++) {
+        controls[i].addEventListener("change", function () {
+          if ($("#autoPreview").checked) run();
+        });
+      }
+      $("#btnClear").addEventListener("click", function () {
+        $("#input").value = "";
+        $("#output").value = "";
+        localStorage.removeItem("css-compact-input");
+      });
+      $("#btnCopy").addEventListener("click", async function () {
+        await navigator.clipboard.writeText($("#output").value || "");
+        $("#btnCopy").textContent = "복사됨!";
+        setTimeout(function () {
+          $("#btnCopy").textContent = "복사";
+        }, 900);
+      });
+      $("#btnSwap").addEventListener("click", function () {
+        var a = $("#input").value,
+          b = $("#output").value;
+        $("#input").value = b;
+        $("#output").value = a;
+        if ($("#autoPreview").checked) run();
+      });
+
+      $("#fileIn").addEventListener("change", async function (e) {
+        var f = e.target.files[0];
+        if (!f) return;
+        var text = await f.text();
+        $("#input").value = text;
+        run();
+      });
+
+      $("#btnDownload").addEventListener("click", function () {
+        var srcName = "styles";
+        var blob = new Blob([$("#output").value || ""], {
+          type: "text/css;charset=utf-8",
+        });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = srcName + ".compact.css";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+
+      // 복원 & 초기 실행
+      var saved = localStorage.getItem("css-compact-input");
+      if (saved) $("#input").value = saved;
+      var unitSaved = localStorage.getItem("css-compact-unit");
+      if (unitSaved === "px2rem") $("#modePx2Rem").checked = true;
+      else if (unitSaved === "rem2px") $("#modeRem2Px").checked = true;
+      else $("#modeNone").checked = true;
+      var pxBaseSaved = localStorage.getItem("css-compact-pxBase");
+      if (pxBaseSaved) $("#pxBase").value = pxBaseSaved;
+      var remBaseSaved = localStorage.getItem("css-compact-remBase");
+      if (remBaseSaved) $("#remBase").value = remBaseSaved;
+      var sortSaved = localStorage.getItem("css-compact-sort");
+      if (sortSaved) $("#optSortProps").checked = sortSaved === "1";
+      var sortPresetSaved = localStorage.getItem("css-compact-sortPreset");
+      if (sortPresetSaved) $("#sortPreset").value = sortPresetSaved;
+      run();
+    </script>
+  </body>
+</html>

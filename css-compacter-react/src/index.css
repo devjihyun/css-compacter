@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-night text-night-text font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-night-accent/30 text-night-text;
+  }
+
+  a {
+    @apply font-medium text-night-accent transition-colors duration-150;
+  }
+
+  a:hover {
+    @apply text-night-accent/80;
+  }
+}
+
+@layer components {
+  .card-surface {
+    @apply rounded-2xl border border-night-border bg-night-card p-5 shadow-card;
+  }
+}

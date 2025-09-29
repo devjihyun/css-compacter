@@ -7,7 +7,7 @@ export const collapseWhitespace = (css: string): string => css.replace(/\s+/g, '
 export const tightenSymbols = (css: string): string =>
   css.replace(/\s*([{}:;,>~+()\[\]=])\s*/g, '$1');
 
-export const trimSemicolonBeforeBrace = (css: string): string => css.replace(/;}/g, '}');
+export const trimSemicolonBeforeBrace = (css: string): string => css.replace(/;\s*}/g, '}');
 
 export const pxToRem = (css: string, base: number = 16, precision: number = 3): string =>
   css.replace(/(-?\d*\.?\d+)px\b/g, (m, num) => {
@@ -37,11 +37,25 @@ const splitDeclarations = (block: string): string[] =>
     .map((declaration) => declaration.trim())
     .filter(Boolean);
 
-const joinDeclarations = (declarations: string[]): string =>
-  declarations.length ? `${declarations.map((decl) => `${decl};`).join(' ')}` : '';
+const joinDeclarations = (declarations: string[], trimFinalSemicolon: boolean): string => {
+  if (!declarations.length) {
+    return '';
+  }
+
+  return declarations
+    .map((decl, index) => {
+      const isLast = index === declarations.length - 1;
+      return trimFinalSemicolon && isLast ? decl : `${decl};`;
+    })
+    .join(' ');
+};
 
 const sortDeclarations = (declarations: string[], preset: FormatterOptions['sortPreset']): string[] => {
   if (!declarations.length) {
+    return declarations;
+  }
+
+  if (preset === 'none') {
     return declarations;
   }
 
@@ -98,7 +112,7 @@ const formatBlocks = (css: string, options: FormatterOptions): string => {
         ? sortDeclarations(declarations, options.sortPreset)
         : declarations;
 
-      const declarationString = joinDeclarations(finalDeclarations).trim();
+      const declarationString = joinDeclarations(finalDeclarations, options.trimSemicolon).trim();
       if (!declarationString) {
         return `${selector} { }`;
       }
@@ -115,18 +129,14 @@ export const formatCss = (input: string, options: FormatterOptions): string => {
   }
 
   if (options.removeComments) css = stripComments(css);
-  if (options.collapseWhitespace) css = collapseWhitespace(css);
-  if (options.tightenSymbols) css = tightenSymbols(css);
-  if (options.trimSemicolon) css = trimSemicolonBeforeBrace(css);
-
   if (options.unitMode === 'px2rem') {
     css = pxToRem(css, options.pxBase);
   } else if (options.unitMode === 'rem2px') {
     css = remToPx(css, options.remBase);
   }
-
-  css = tightenSymbols(css.replace(/\s*{\s*/g, ' { ').replace(/\s*}\s*/g, ' } '));
-  css = css.replace(/\s*;\s*/g, '; ').replace(/\s+/g, ' ');
+  if (options.collapseWhitespace) css = collapseWhitespace(css);
+  if (options.tightenSymbols) css = tightenSymbols(css);
+  if (options.trimSemicolon) css = trimSemicolonBeforeBrace(css);
 
   return formatBlocks(css, options)
     .split('\n')

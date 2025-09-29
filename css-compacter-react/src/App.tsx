@@ -20,10 +20,44 @@ const createDefaultControls = (): ControlsState => ({
   remBase: 16,
 });
 
+const secondaryButtonClass =
+  'inline-flex items-center justify-center rounded-xl border border-night-border bg-night-button px-4 py-2 text-sm font-medium text-night-text transition duration-150 hover:bg-night-buttonHover';
+
+type Theme = 'light' | 'dark';
+
 const App: React.FC = () => {
   const [inputCss, setInputCss] = useState<string>('');
   const [outputCss, setOutputCss] = useState<string>('');
   const [controls, setControls] = useState<ControlsState>(() => createDefaultControls());
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') {
+      return 'dark';
+    }
+
+    const stored = window.localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') {
+      if (typeof document !== 'undefined') {
+        document.documentElement.dataset.theme = stored;
+      }
+      return stored;
+    }
+
+    const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+    const resolved = prefersLight ? 'light' : 'dark';
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = resolved;
+    }
+    return resolved;
+  });
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = theme;
+    }
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('theme', theme);
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (!controls.autoPreview) {
@@ -91,22 +125,40 @@ const App: React.FC = () => {
     setControls((prev) => ({ ...prev, ...changes }));
   };
 
+  const handleThemeToggle = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   return (
-    <div className="min-h-screen bg-night">
-      <Header />
+    <div className="min-h-screen bg-night text-night-text transition-colors duration-300">
+      <Header theme={theme} onToggleTheme={handleThemeToggle} />
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-8">
         <Controls
           state={controls}
           onStateChange={handleControlChange}
-          onClear={handleClear}
-          onSwap={handleSwap}
           onManualFormat={handleManualFormat}
-          onDownload={handleDownload}
-          onFileImport={handleFileImport}
         />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <CssInput value={inputCss} onChange={handleCssChange} />
-          <CssOutput value={outputCss} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-2.5">
+          <CssInput value={inputCss} onChange={handleCssChange} onFileImport={handleFileImport} />
+          <CssOutput value={outputCss} onSwap={handleSwap} />
+        </div>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            className={secondaryButtonClass}
+            id="btnClear"
+            onClick={handleClear}
+          >
+            초기화
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-xl border border-transparent bg-night-accent px-4 py-2 text-sm font-semibold text-slate-950 transition duration-150 hover:brightness-110"
+            id="btnDownload"
+            onClick={handleDownload}
+          >
+            .compact.css 저장
+          </button>
         </div>
         <Footer />
       </main>

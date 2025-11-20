@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import Header from './components/Header';
-import Controls from './components/Controls';
-import CssInput from './components/CssInput';
-import CssOutput from './components/CssOutput';
-import Footer from './components/Footer';
-import { ControlsState } from './types';
-import { formatCss } from './utils/cssFormatter';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import styled, { ThemeProvider } from "styled-components";
+import Header from "./components/Header";
+import Controls from "./components/Controls";
+import CssInput from "./components/CssInput";
+import CssOutput from "./components/CssOutput";
+import Footer from "./components/Footer";
+import { ControlsState } from "./types";
+import { formatCss } from "./utils/cssFormatter";
+import { sampleCss } from "./utils/sampleCss";
+import { GlobalStyle } from "./styles/globalStyles";
+import { darkTheme, lightTheme } from "./styles/theme";
 
 const createDefaultControls = (): ControlsState => ({
   autoPreview: true,
@@ -13,51 +17,60 @@ const createDefaultControls = (): ControlsState => ({
   collapseWhitespace: true,
   tightenSymbols: true,
   trimSemicolon: true,
+  outputMode: "multi-line",
   sortProperties: false,
-  sortPreset: 'concentric',
-  unitMode: '',
+  sortPreset: "concentric",
+  unitMode: "",
   pxBase: 16,
   remBase: 16,
 });
 
-const secondaryButtonClass =
-  'inline-flex items-center justify-center rounded-xl border border-night-border bg-night-button px-4 py-2 text-sm font-medium text-night-text transition duration-150 hover:bg-night-buttonHover';
+type ThemeMode = "light" | "dark";
 
-type Theme = 'light' | 'dark';
+const fallbackCopyToClipboard = (text: string) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const temp = document.createElement("textarea");
+  temp.value = text;
+  temp.style.position = "fixed";
+  temp.style.opacity = "0";
+  document.body.appendChild(temp);
+  temp.select();
+  document.execCommand("copy");
+  temp.remove();
+};
 
 const App: React.FC = () => {
-  const [inputCss, setInputCss] = useState<string>('');
-  const [outputCss, setOutputCss] = useState<string>('');
-  const [controls, setControls] = useState<ControlsState>(() => createDefaultControls());
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') {
-      return 'dark';
+  const [inputCss, setInputCss] = useState<string>("");
+  const [outputCss, setOutputCss] = useState<string>("");
+  const [controls, setControls] = useState<ControlsState>(() =>
+    createDefaultControls()
+  );
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") {
+      return "dark";
     }
 
-    const stored = window.localStorage.getItem('theme');
-    if (stored === 'light' || stored === 'dark') {
-      if (typeof document !== 'undefined') {
-        document.documentElement.dataset.theme = stored;
-      }
+    const stored = window.localStorage.getItem("theme");
+    if (stored === "light" || stored === "dark") {
       return stored;
     }
 
-    const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
-    const resolved = prefersLight ? 'light' : 'dark';
-    if (typeof document !== 'undefined') {
-      document.documentElement.dataset.theme = resolved;
-    }
-    return resolved;
+    const prefersLight = window.matchMedia?.(
+      "(prefers-color-scheme: light)"
+    ).matches;
+    return prefersLight ? "light" : "dark";
   });
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.dataset.theme = theme;
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.theme = themeMode;
     }
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('theme', theme);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("theme", themeMode);
     }
-  }, [theme]);
+  }, [themeMode]);
 
   useEffect(() => {
     if (!controls.autoPreview) {
@@ -73,14 +86,14 @@ const App: React.FC = () => {
     }
   };
 
-  const handleManualFormat = () => {
+  const handleManualFormat = useCallback(() => {
     const formatted = formatCss(inputCss, controls);
     setOutputCss(formatted);
-  };
+  }, [controls, inputCss]);
 
   const handleClear = () => {
-    setInputCss('');
-    setOutputCss('');
+    setInputCss("");
+    setOutputCss("");
     setControls(createDefaultControls());
   };
 
@@ -93,21 +106,41 @@ const App: React.FC = () => {
     }
   };
 
+  const resolveLatestCss = (): string => {
+    if (controls.autoPreview) {
+      return outputCss;
+    }
+    const formatted = formatCss(inputCss, controls);
+    setOutputCss(formatted);
+    return formatted;
+  };
+
+  const handleCopyOutput = () => {
+    const cssToCopy = resolveLatestCss();
+    if (!cssToCopy) {
+      return;
+    }
+
+    if (typeof navigator !== "undefined" && navigator?.clipboard) {
+      navigator.clipboard
+        .writeText(cssToCopy)
+        .catch(() => fallbackCopyToClipboard(cssToCopy));
+    } else {
+      fallbackCopyToClipboard(cssToCopy);
+    }
+  };
+
   const handleDownload = () => {
-    const cssToDownload = controls.autoPreview ? outputCss : formatCss(inputCss, controls);
+    const cssToDownload = resolveLatestCss();
     if (!cssToDownload) {
       return;
     }
 
-    if (!controls.autoPreview) {
-      setOutputCss(cssToDownload);
-    }
-
-    const blob = new Blob([cssToDownload], { type: 'text/css;charset=utf-8' });
+    const blob = new Blob([cssToDownload], { type: "text/css;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = 'styles.compact.css';
+    link.download = "styles.compact.css";
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -121,49 +154,132 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLoadSample = () => {
+    setInputCss(sampleCss);
+    if (controls.autoPreview) {
+      setOutputCss(formatCss(sampleCss, controls));
+    } else {
+      setOutputCss("");
+    }
+  };
+
   const handleControlChange = (changes: Partial<ControlsState>) => {
     setControls((prev) => ({ ...prev, ...changes }));
   };
 
   const handleThemeToggle = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setThemeMode((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
+  const theme = useMemo(
+    () => (themeMode === "dark" ? darkTheme : lightTheme),
+    [themeMode]
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isRunShortcut =
+        (event.metaKey || event.ctrlKey) && event.key === "Enter";
+      if (!isRunShortcut || controls.autoPreview) {
+        return;
+      }
+      event.preventDefault();
+      handleManualFormat();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [controls.autoPreview, handleManualFormat]);
+
   return (
-    <div className="min-h-screen bg-night text-night-text transition-colors duration-300">
-      <Header theme={theme} onToggleTheme={handleThemeToggle} />
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-8">
-        <Controls
-          state={controls}
-          onStateChange={handleControlChange}
-          onManualFormat={handleManualFormat}
-        />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-2.5">
-          <CssInput value={inputCss} onChange={handleCssChange} onFileImport={handleFileImport} />
-          <CssOutput value={outputCss} onSwap={handleSwap} />
-        </div>
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            className={secondaryButtonClass}
-            id="btnClear"
-            onClick={handleClear}
-          >
-            초기화
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-xl border border-transparent bg-night-accent px-4 py-2 text-sm font-semibold text-slate-950 transition duration-150 hover:brightness-110"
-            id="btnDownload"
-            onClick={handleDownload}
-          >
-            .compact.css 저장
-          </button>
-        </div>
+    <ThemeProvider theme={theme}>
+      <GlobalStyle />
+      <AppShell>
+        <Header theme={themeMode} onToggleTheme={handleThemeToggle} />
+        <Main>
+          <Layout>
+            <Sidebar>
+              <Controls state={controls} onStateChange={handleControlChange} />
+            </Sidebar>
+            <EditorsArea>
+              <EditorsGrid>
+                <CssInput
+                  value={inputCss}
+                  onChange={handleCssChange}
+                  onFileImport={handleFileImport}
+                  onLoadSample={handleLoadSample}
+                  onClear={handleClear}
+                />
+                <CssOutput
+                  value={outputCss}
+                  onSwap={handleSwap}
+                  onCopy={handleCopyOutput}
+                  onDownload={handleDownload}
+                  onManualFormat={handleManualFormat}
+                  autoPreview={controls.autoPreview}
+                />
+              </EditorsGrid>
+            </EditorsArea>
+          </Layout>
+        </Main>
         <Footer />
-      </main>
-    </div>
+      </AppShell>
+    </ThemeProvider>
   );
 };
 
 export default App;
+
+const AppShell = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
+  transition: background ${({ theme }) => theme.transitions.base},
+    color ${({ theme }) => theme.transitions.base};
+`;
+
+const Main = styled.main`
+  flex: 1;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: ${({ theme }) => theme.spacing.xl};
+  padding-top: calc(${({ theme }) => theme.spacing.xl} + 2rem);
+`;
+
+const Layout = styled.div`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.lg};
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+`;
+
+const Sidebar = styled.aside`
+  position: sticky;
+  top: 6.5rem;
+  align-self: start;
+`;
+
+const EditorsArea = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const EditorsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.spacing.md};
+  align-items: stretch;
+  grid-auto-rows: minmax(0, 1fr);
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;

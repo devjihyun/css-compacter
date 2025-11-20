@@ -1,14 +1,17 @@
-import React, { ChangeEvent } from "react";
+import React, { ChangeEvent, useRef } from "react";
+import styled from "styled-components";
 import { CssInputProps } from "../types";
-
-const buttonClass =
-  "inline-flex items-center justify-center rounded-xl border border-night-border bg-white px-3 py-1.5 text-xs font-medium text-night-panel transition duration-150 hover:bg-white/90";
+import { panelContainerStyles, codeAreaStyles } from "./panelStyles";
 
 const CssInput: React.FC<CssInputProps> = ({
   value,
   onChange,
   onFileImport,
+  onLoadSample,
+  onClear,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const [file] = Array.from(event.target.files ?? []);
     if (!file) return;
@@ -23,32 +26,116 @@ const CssInput: React.FC<CssInputProps> = ({
     event.target.value = "";
   };
 
+  const triggerFileDialog = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
-    <section className="card-surface flex h-full flex-col gap-4">
-      <div className="flex items-center gap-3 text-sm text-night-muted">
-        <strong className="text-night-text">입력 CSS ⬅️</strong>
-        <span className="ml-auto text-xs text-night-hint">
-          붙여넣기 또는 파일 열기
-        </span>
-        <label className={`${buttonClass} cursor-pointer`}>
-          <input
+    <Container>
+      <PanelHeader>
+        <TitleGroup>
+          <PanelIcon aria-hidden>📝</PanelIcon>
+          <Title>입력 CSS</Title>
+        </TitleGroup>
+        <HeaderActions>
+          <HiddenFileInput
+            ref={fileInputRef}
             type="file"
             accept=".css"
-            className="hidden"
             onChange={handleFileChange}
           />
-          CSS 열기
-        </label>
-      </div>
-      <textarea
+          <SecondaryButton type="button" onClick={onLoadSample}>
+            샘플 불러오기
+          </SecondaryButton>
+          <SecondaryButton type="button" onClick={triggerFileDialog}>
+            CSS 열기
+          </SecondaryButton>
+          <SecondaryButton type="button" onClick={onClear}>
+            초기화
+          </SecondaryButton>
+        </HeaderActions>
+      </PanelHeader>
+      <Editor
         id="input"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         placeholder="/* 여기에 CSS를 붙여넣으세요 */"
-        className="min-h-[320px] w-full resize-y rounded-xl border border-night-border bg-night-panel px-4 py-3 font-mono text-xs text-night-text placeholder:text-night-hint focus:border-night-accent focus:outline-none focus:ring-2 focus:ring-night-accent/40"
       />
-    </section>
+    </Container>
   );
 };
 
 export default CssInput;
+
+const Container = styled.section`
+  ${panelContainerStyles};
+`;
+
+const PanelHeader = styled.header`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.spacing.sm};
+  min-height: 3rem;
+`;
+
+const TitleGroup = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.xs};
+  min-height: 1.5rem;
+`;
+
+const PanelIcon = styled.span`
+  font-size: 1.1rem;
+`;
+
+const Title = styled.strong`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 0.95rem;
+  font-weight: 600;
+`;
+
+const HeaderActions = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-left: auto;
+  font-size: 0.8rem;
+`;
+
+const HintText = styled.span`
+  color: ${({ theme }) => theme.colors.hint};
+`;
+
+const SecondaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem ${({ theme }) => theme.spacing.md};
+  border-radius: ${({ theme }) => theme.radii.md};
+  border: none;
+  background: ${({ theme }) => theme.colors.button};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.transitions.base};
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.buttonHover};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+  }
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const Editor = styled.textarea`
+  ${codeAreaStyles};
+`;

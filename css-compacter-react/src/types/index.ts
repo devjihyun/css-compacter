@@ -5,8 +5,9 @@ export interface FormatterOptions {
   collapseWhitespace: boolean;
   tightenSymbols: boolean;
   trimSemicolon: boolean;
+  outputMode: 'multi-line' | 'single-line' | 'minify';
   sortProperties: boolean;
-  sortPreset: 'none' | 'concentric' | 'alphabetical';
+  sortPreset: 'none' | 'concentric';
   unitMode: UnitConversionMode;
   pxBase: number;
   remBase: number;
@@ -20,15 +21,20 @@ export interface CssInputProps {
   value: string;
   onChange: (value: string) => void;
   onFileImport: (content: string) => void;
+  onLoadSample: () => void;
+  onClear: () => void;
 }
 
 export interface CssOutputProps {
   value: string;
   onSwap: () => void;
+  onCopy: () => void;
+  onDownload: () => void;
+  onManualFormat: () => void;
+  autoPreview: boolean;
 }
 
 export interface ControlsProps {
   state: ControlsState;
   onStateChange: (changes: Partial<ControlsState>) => void;
-  onManualFormat: () => void;
 }

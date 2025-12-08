@@ -53,8 +53,6 @@ css-compacter-react
 5. 프로덕션 빌드:
 
    ```bash
-   # config 출력물이 없는 경우 먼저 생성
-   npx tsc -b
    npm run build
    # 빌드 결과 미리보기
    npm run preview

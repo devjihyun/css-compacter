@@ -1,4 +1,4 @@
-export type UnitConversionMode = '' | 'px2rem' | 'rem2px';
+export type UnitConversionMode = 'none' | 'px2rem' | 'rem2px';
 
 export interface FormatterOptions {
   removeComments: boolean;

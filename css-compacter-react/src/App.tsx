@@ -47,7 +47,7 @@ const createDefaultControls = (): ControlsState => ({
   outputMode: "multi-line",
   sortProperties: false,
   sortPreset: "concentric",
-  unitMode: "",
+  unitMode: "none",
   pxBase: 16,
   remBase: 16,
 });
@@ -366,7 +366,7 @@ const App: React.FC = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
-                              <SelectItem value="">변환 안 함</SelectItem>
+                              <SelectItem value="none">변환 안 함</SelectItem>
                               <SelectItem value="px2rem">px → rem</SelectItem>
                               <SelectItem value="rem2px">rem → px</SelectItem>
                             </SelectGroup>
@@ -386,7 +386,7 @@ const App: React.FC = () => {
                               : controls.pxBase
                           }
                           onChange={(e) => handleUnitBaseChange(e.target.value)}
-                          disabled={controls.unitMode === ""}
+                          disabled={controls.unitMode === "none"}
                           className="h-10"
                         />
                       </div>

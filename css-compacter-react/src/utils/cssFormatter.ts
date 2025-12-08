@@ -64,9 +64,10 @@ export const tightenSymbols = (css: string): string =>
   css.replace(/\s*([{}:;,>~+()\[\]=])\s*/g, (match, symbol, offset, str) => {
     if (symbol === ']') {
       // Preserve a descendant combinator if whitespace originally existed after a closing bracket.
+      const hadTrailingWhitespace = /\s$/.test(match);
       const nextNonSpaceMatch = str.slice(offset + match.length).match(/\S/);
       const nextNonSpace = nextNonSpaceMatch ? nextNonSpaceMatch[0] : '';
-      if (/[.#a-zA-Z0-9_-]/.test(nextNonSpace)) {
+      if (hadTrailingWhitespace && /[.#a-zA-Z0-9_-]/.test(nextNonSpace)) {
         return '] ';
       }
     }
@@ -107,11 +108,14 @@ interface PropertyGroup {
 
 const vendorPrefixPattern = /^-(webkit|moz|ms|o)-/i;
 
-// Category-based property order inspired by common style guides (Airbnb, GitHub, Google)
+// Category-based property order inspired by Concentric/Rhodes Mill (box model centric)
 const groupedPropertyOrder: PropertyGroup[] = [
   {
-    name: 'positioning',
+    name: 'layout-position',
     patterns: [
+      'display',
+      'contain',
+      'contain-intrinsic-size',
       'position',
       'inset',
       'inset-block',
@@ -120,19 +124,10 @@ const groupedPropertyOrder: PropertyGroup[] = [
       'right',
       'bottom',
       'left',
-      'z-index',
       'float',
       'clear',
-      'visibility',
       'isolation',
-    ],
-  },
-  {
-    name: 'box-model',
-    patterns: [
-      'display',
-      'contain',
-      'contain-intrinsic-size',
+      'z-index',
       'flex-direction',
       'flex-wrap',
       'flex-flow',
@@ -154,6 +149,29 @@ const groupedPropertyOrder: PropertyGroup[] = [
       'column-gap',
       'columns',
       'column',
+    ],
+  },
+  {
+    name: 'visibility-layer',
+    patterns: [
+      'visibility',
+      'opacity',
+      'z-index',
+    ],
+  },
+  {
+    name: 'box-layer',
+    patterns: [
+      'margin',
+      'outline',
+      'border',
+      'background',
+      'padding',
+    ],
+  },
+  {
+    name: 'sizing-overflow',
+    patterns: [
       'box-sizing',
       'width',
       'min-width',
@@ -172,12 +190,11 @@ const groupedPropertyOrder: PropertyGroup[] = [
       'object-position',
       'overflow',
       'overscroll',
+      'scroll-behavior',
       'scroll-snap',
       'scroll-margin',
       'scroll-padding',
       'scrollbar',
-      'margin',
-      'padding',
     ],
   },
   {
@@ -203,14 +220,10 @@ const groupedPropertyOrder: PropertyGroup[] = [
     ],
   },
   {
-    name: 'visual',
+    name: 'visual-interaction',
     patterns: [
-      'background',
-      'border',
-      'outline',
       'box-decoration',
       'box-shadow',
-      'opacity',
       'filter',
       'backdrop-filter',
       'mix-blend-mode',
@@ -221,17 +234,11 @@ const groupedPropertyOrder: PropertyGroup[] = [
       'image',
       'fill',
       'stroke',
-    ],
-  },
-  {
-    name: 'interaction',
-    patterns: [
       'transform',
       'perspective',
       'backface-visibility',
       'transition',
       'animation',
-      'scroll-behavior',
       'cursor',
       'pointer',
       'user-select',
@@ -245,25 +252,121 @@ const groupedPropertyOrder: PropertyGroup[] = [
   },
 ];
 
-const matchesPattern = (property: string, pattern: PropertyPattern): boolean => {
+// Alternative category grouping (Positioning/Display-Bbox/Border-BG/Typography/Interaction/Etc)
+const categoryPropertyOrder: PropertyGroup[] = [
+  {
+    name: 'positioning',
+    patterns: ['position', 'top', 'right', 'bottom', 'left', 'z-index'],
+  },
+  {
+    name: 'display-box',
+    patterns: [
+      'display',
+      'float',
+      'clear',
+      'flex',
+      'flex-direction',
+      'flex-wrap',
+      'flex-flow',
+      'flex-grow',
+      'flex-shrink',
+      'flex-basis',
+      'justify',
+      'align',
+      'place',
+      'order',
+      'grid',
+      'grid-template',
+      'grid-auto',
+      'grid-row',
+      'grid-column',
+      'gap',
+      'row-gap',
+      'column-gap',
+      'width',
+      'min-width',
+      'max-width',
+      'height',
+      'min-height',
+      'max-height',
+      'inline-size',
+      'block-size',
+      'margin',
+      'padding',
+      'box-sizing',
+      'overflow',
+      'overflow-x',
+      'overflow-y',
+    ],
+  },
+  {
+    name: 'border-background',
+    patterns: [
+      'border',
+      'border-top',
+      'border-right',
+      'border-bottom',
+      'border-left',
+      'border-radius',
+      'outline',
+      'background',
+      'box-shadow',
+    ],
+  },
+  {
+    name: 'typography',
+    patterns: ['font', 'line-height', 'text', 'color'],
+  },
+  {
+    name: 'interaction',
+    patterns: ['cursor', 'transition', 'transform', 'animation'],
+  },
+  {
+    name: 'etc',
+    patterns: ['content', 'list-style', 'appearance'],
+  },
+];
+
+interface MatchResult {
+  matched: boolean;
+  specificity: number; // higher means more specific (exact > regex > prefix)
+}
+
+const matchPattern = (property: string, pattern: PropertyPattern): MatchResult => {
   if (pattern instanceof RegExp) {
-    return pattern.test(property);
+    return { matched: pattern.test(property), specificity: 2 };
   }
   const normalized = pattern.toLowerCase();
-  return property === normalized || property.startsWith(`${normalized}-`);
+  if (property === normalized) {
+    return { matched: true, specificity: 3 };
+  }
+  if (property.startsWith(`${normalized}-`)) {
+    return { matched: true, specificity: 1 };
+  }
+  return { matched: false, specificity: 0 };
 };
 
-const resolvePropertyOrder = (property: string) => {
-  for (let groupIndex = 0; groupIndex < groupedPropertyOrder.length; groupIndex += 1) {
-    const group = groupedPropertyOrder[groupIndex];
+const resolvePropertyOrder = (property: string, groups: PropertyGroup[] = groupedPropertyOrder) => {
+  let best:
+    | { groupIndex: number; propertyIndex: number; specificity: number }
+    | null = null;
+
+  for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+    const group = groups[groupIndex];
     for (let propertyIndex = 0; propertyIndex < group.patterns.length; propertyIndex += 1) {
       const pattern = group.patterns[propertyIndex];
-      if (matchesPattern(property, pattern)) {
-        return { groupIndex, propertyIndex };
+      const { matched, specificity } = matchPattern(property, pattern);
+      if (!matched) continue;
+      if (
+        !best ||
+        specificity > best.specificity ||
+        (specificity === best.specificity && propertyIndex < best.propertyIndex)
+      ) {
+        best = { groupIndex, propertyIndex, specificity };
       }
     }
   }
-  return null;
+  return best;
 };
 
 const extractPropertyName = (declaration: string): string => {
@@ -274,11 +377,83 @@ const extractPropertyName = (declaration: string): string => {
   return rawProperty.trim().replace(vendorPrefixPattern, '').toLowerCase();
 };
 
-const splitDeclarations = (block: string): string[] =>
-  block
-    .split(';')
-    .map((declaration) => declaration.trim())
-    .filter(Boolean);
+// Split declarations while respecting strings, comments, nested braces/paren/bracket so
+// data URIs or nested rules do not get split mid-value.
+const splitDeclarations = (block: string): string[] => {
+  const declarations: string[] = [];
+  let current = '';
+  let inString: '"' | "'" | null = null;
+  let inComment = false;
+  let depthCurly = 0;
+  let depthParen = 0;
+  let depthBracket = 0;
+
+  const pushCurrent = () => {
+    const trimmed = current.trim();
+    if (trimmed) declarations.push(trimmed);
+    current = '';
+  };
+
+  for (let i = 0; i < block.length; i += 1) {
+    const char = block[i];
+    const next = block[i + 1];
+    const prev = block[i - 1];
+
+    // comment start/end
+    if (!inString && !inComment && char === '/' && next === '*') {
+      inComment = true;
+      current += '/*';
+      i += 1;
+      continue;
+    }
+    if (inComment && char === '*' && next === '/') {
+      inComment = false;
+      current += '*/';
+      i += 1;
+      continue;
+    }
+    if (inComment) {
+      current += char;
+      continue;
+    }
+
+    // string toggling (ignore escaped quotes)
+    if (inString) {
+      current += char;
+      if (char === inString && prev !== '\\') {
+        inString = null;
+      }
+      continue;
+    } else if (char === '"' || char === "'") {
+      inString = char;
+      current += char;
+      continue;
+    }
+
+    // nesting
+    if (char === '{') depthCurly += 1;
+    if (char === '}') depthCurly = Math.max(0, depthCurly - 1);
+    if (char === '(') depthParen += 1;
+    if (char === ')') depthParen = Math.max(0, depthParen - 1);
+    if (char === '[') depthBracket += 1;
+    if (char === ']') depthBracket = Math.max(0, depthBracket - 1);
+
+    if (
+      char === ';' &&
+      depthCurly === 0 &&
+      depthParen === 0 &&
+      depthBracket === 0
+    ) {
+      pushCurrent();
+      continue;
+    }
+
+    current += char;
+  }
+
+  pushCurrent();
+  return declarations;
+};
 
 const joinDeclarations = (
   declarations: string[],
@@ -311,6 +486,11 @@ const joinDeclarations = (
     .join(separator);
 };
 
+const getGroupsForPreset = (preset: FormatterOptions['sortPreset']) => {
+  if (preset === 'category') return categoryPropertyOrder;
+  return groupedPropertyOrder;
+};
+
 const sortDeclarations = (declarations: string[], preset: FormatterOptions['sortPreset']): string[] => {
   if (!declarations.length) {
     return declarations;
@@ -320,18 +500,20 @@ const sortDeclarations = (declarations: string[], preset: FormatterOptions['sort
     return declarations;
   }
 
-  if (preset !== 'concentric') {
+  if (preset !== 'concentric' && preset !== 'category') {
     return declarations;
   }
 
+  const groups = getGroupsForPreset(preset);
+
   const prepared = declarations.map((declaration, originalIndex) => {
     const property = extractPropertyName(declaration);
-    const resolved = resolvePropertyOrder(property);
+    const resolved = resolvePropertyOrder(property, groups);
 
     return {
       declaration,
       originalIndex,
-      groupIndex: resolved?.groupIndex ?? groupedPropertyOrder.length,
+      groupIndex: resolved?.groupIndex ?? groups.length,
       propertyIndex: resolved?.propertyIndex ?? Number.MAX_SAFE_INTEGER,
     };
   });
@@ -365,15 +547,73 @@ const extractLeadingComments = (text: string): { comments: string[]; remainder: 
   return { comments, remainder };
 };
 
+// Split top-level blocks while respecting strings/comments to avoid breaking nested rules.
+const splitBlocks = (css: string): string[] => {
+  const blocks: string[] = [];
+  let current = '';
+  let depth = 0;
+  let inString: '"' | "'" | null = null;
+  let inComment = false;
+
+  for (let i = 0; i < css.length; i += 1) {
+    const char = css[i];
+    const next = css[i + 1];
+    const prev = css[i - 1];
+
+    // comment start/end
+    if (!inString && !inComment && char === '/' && next === '*') {
+      inComment = true;
+      current += '/*';
+      i += 1;
+      continue;
+    }
+    if (inComment && char === '*' && next === '/') {
+      inComment = false;
+      current += '*/';
+      i += 1;
+      continue;
+    }
+    if (inComment) {
+      current += char;
+      continue;
+    }
+
+    // string toggling (ignore escaped quotes)
+    if (inString) {
+      current += char;
+      if (char === inString && prev !== '\\') {
+        inString = null;
+      }
+      continue;
+    } else if (char === '"' || char === "'") {
+      inString = char;
+      current += char;
+      continue;
+    }
+
+    if (char === '{') depth += 1;
+    if (char === '}') depth = Math.max(0, depth - 1);
+
+    current += char;
+
+    if (depth === 0 && char === '}') {
+      const trimmed = current.slice(0, -1).trim(); // drop the closing brace
+      if (trimmed) blocks.push(trimmed);
+      current = '';
+    }
+  }
+
+  const trailing = current.trim();
+  if (trailing) blocks.push(trailing);
+  return blocks;
+};
+
 const formatBlocks = (css: string, options: FormatterOptions): string => {
   const collapseSpacing = options.outputMode === 'minify' ? true : options.collapseWhitespace;
   const tightenBraces = options.outputMode === 'minify' ? true : options.tightenSymbols;
   const blockJoiner = options.outputMode === 'minify' ? '' : '\n';
 
-  const blocks = css
-    .split('}')
-    .map((block) => block.trim())
-    .filter(Boolean);
+  const blocks = splitBlocks(css);
 
   return blocks
     .map((block) => {

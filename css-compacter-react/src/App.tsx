@@ -398,7 +398,7 @@ const App: React.FC = () => {
                   <div className="space-y-1">
                     <p className="text-sm font-semibold">속성 정렬</p>
                     <p className="text-xs text-muted-foreground">
-                      없음 / Concentric
+                      없음 / Concentric / Category
                     </p>
                   </div>
                   <Select
@@ -418,8 +418,20 @@ const App: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="none">정렬 안 함</SelectItem>
                       <SelectItem value="concentric">Concentric</SelectItem>
+                      <SelectItem value="category">Category</SelectItem>
                     </SelectContent>
                   </Select>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      Concentric: <br />
+                      바깥→안쪽(레이아웃→박스→텍스트) 구조로 정렬합니다.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Category: <br />
+                      기능별 그룹(layout/box/border/text 등) 기준으로
+                      정렬합니다.
+                    </p>
+                  </div>
                 </section>
               </CardContent>
             </Card>

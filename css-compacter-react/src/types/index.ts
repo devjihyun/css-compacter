@@ -7,7 +7,7 @@ export interface FormatterOptions {
   trimSemicolon: boolean;
   outputMode: 'multi-line' | 'single-line' | 'minify';
   sortProperties: boolean;
-  sortPreset: 'none' | 'concentric';
+  sortPreset: 'none' | 'concentric' | 'category';
   unitMode: UnitConversionMode;
   pxBase: number;
   remBase: number;

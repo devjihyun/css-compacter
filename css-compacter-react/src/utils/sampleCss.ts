@@ -1,101 +1,104 @@
 export const sampleCss = `
 /* --- group selector --- */
-h1,
-h2 , 
-.title {
-    color : #333 ;
-    margin-bottom: 12px ;;
+h1 ,
+h2  ,
+.title   {
+    margin-bottom : 28px  ;
+    color : #222  ;;
 }
 
 /* --- descendant selector --- */
-#main-area   .content-box   {
-    padding: 20px 30px ;
-    background: #f9f9f9  ; ;
+#main-area    .content-box   {
+    padding : 20px 30px ;
+    background: #fafafa  ; ;
 }
 
-/* --- attribute selector (exact match) --- */
+/* --- child + sibling selector --- */
+.list > li + li  {
+    margin-top : 12px ;
+}
+
+/* --- attribute selector exact --- */
 input[type="text"]   {
-    border :1px solid #ccc ;
-    padding :8px 12px  ;  ;
+    border : 1px solid #ccc ;
+    padding : 8px 12px ; ;
 }
 
-/* --- attribute selector (starts-with) --- */
-a[href^="https://"] {
+/* --- attribute contains & starts-with --- */
+a[href^="https://"]{
     color : blue ;
-    text-decoration : underline ;;
+    text-decoration : underline ; ;
 }
 
-/* --- pseudo-class + pseudo-element --- */
+img[alt*="thumbnail"] {
+    width : 100px ;
+    height : 60px  ;;
+}
+
+/* --- pseudo class + element --- */
 .button:hover::after {
-    content : " →" ;
-    margin-left :4px  ; 
-    opacity:0.8;;
+    content: " →" ;
+    margin-left : 4px ;
+    opacity : .8 ;;
 }
 
-/* --- child selector --- */
-.list > li {
-    padding:5px 0 ;
-    border-bottom :1px solid #eee ;;
-}
-
-/* --- adjacent sibling selector --- */
-.list-item + .list-item {
-    margin-top :10px ;
-}
-
-/* --- attribute selector + ID + class (이어붙이는 형태) --- */
-.card[data-active="true"]#featured.special-type {
+/* --- attribute + ID + class 이어붙임(테스트 핵심) --- */
+.card[data-active="true"]#featured.special-type{
+    padding : 16px 20px ;
     background : #eaf4ff ;
-    border :2px solid #7ab3e6  ; ;
-    padding :16px 20px ;
+    border : 2px solid #7ab3e6 ;;
 }
 
-/* --- attribute selector + class 여러개 이어붙임 --- */
+/* --- attribute + class 이어붙임 --- */
 .card[data-active="true"].is-open.is-highlighted {
     background:#fff7e8 ;
-    color:#444  ;  ;
-    box-shadow :0 2px 6px rgba(0,0,0,.15) ;
+    color:#444 ;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2) ;;
 }
 
-/* --- ID 먼저 등장 후 attribute 붙여쓰기 --- */
-#promoCard.card[data-active="true"] {
-    border-color:#ff8844 ;
-    transform: translateY(-2px)  ; ;
+/* --- ID + class + attribute 순서 변경 케이스 --- */
+#promoBox.special[data-active="false"] {
+    width : 200px ;
+    height : 80px ;
+    border : 1px dashed #aaa  ;;
 }
 
-/* --- attribute selector 뒤에 공백 후 ID 선택자 (후손 선택자) --- */
-.card[data-active="true"]   #featured {
-    background : #eef7ff ;
-    padding :12px 18px ;; 
+/* --- attribute 뒤에 후손 ID/class 케이스 --- */
+.card[data-active="true"]   #badge   {
+    padding : 12px 18px ;
+    background : #eef7ff ; ;
 }
 
-/* --- attribute selector 뒤에 공백 후 class 선택자 --- */
-.card[data-active="true"]   .special-type {
-    color : #446688 ;
-    font-weight : bold ; ;
-}
-
-/* --- more deep descendant chain --- */
-.card[data-active="true"]   .info-box   .title {
-    font-size:20px ;
-    margin-bottom :6px ;;
-}
-
-/* --- attribute + 공백 + ID + pseudo-class --- */
-.card[data-active="true"]   #badge:hover {
-    background:#ffddaa ;
-    border-color:#ff9900 ; ;
-}
-
-/* --- attribute + 공백 + 클래스 + pseudo-element --- */
 .card[data-active="true"]   .tag::before {
-    content:"#";
-    color:#999 ; ;
+    content : "#" ;
+    color : #999 ; ;
+}
+
+/* --- complex chain --- */
+.section   .info-box   .title {
+    font-size : 24px ;
+    margin-bottom : 10px ;;
+}
+
+/* --- multiple values, url(), important --- */
+.hero {
+    background: url("/img/hero.png") no-repeat center center;
+    background-size : cover ;
+    padding : 40px 20px !important ;
+    box-shadow : 0 4px 12px rgba(0,0,0,0.15) , 0 0 4px rgba(0,0,0,0.1) ;;
+}
+
+/* --- at-rule test --- */
+@media screen and (min-width: 768px) {
+    .grid-item{
+        width : 50% ;
+        padding : 16px ;
+    }
 }
 
 /* --- universal selector --- */
-*  {
-    box-sizing: border-box ;  ; 
+* {
+    box-sizing : border-box ;
 }
 
 }`;

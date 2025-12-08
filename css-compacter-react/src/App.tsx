@@ -58,6 +58,7 @@ const App: React.FC = () => {
   const [controls, setControls] = useState<ControlsState>(() =>
     createDefaultControls()
   );
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") return "light";
     const stored = window.localStorage.getItem("theme");
@@ -68,6 +69,7 @@ const App: React.FC = () => {
   });
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -158,6 +160,27 @@ const App: React.FC = () => {
     handleCssChange(sampleCss);
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const lastY = lastScrollY.current;
+      const delta = currentY - lastY;
+
+      if (currentY < 24) {
+        setIsHeaderHidden(false);
+      } else if (delta > 6) {
+        setIsHeaderHidden(true);
+      } else if (delta < -6) {
+        setIsHeaderHidden(false);
+      }
+
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleOutputModeChange = (mode: string) => {
     const nextMode = mode as ControlsState["outputMode"];
     handleControlChange({ outputMode: nextMode });
@@ -181,7 +204,11 @@ const App: React.FC = () => {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background text-foreground">
-        <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+        <header
+          className={`sticky top-0 z-30 border-b bg-background/90 backdrop-blur transition-transform duration-300 ease-out ${
+            isHeaderHidden ? "-translate-y-full" : "translate-y-0"
+          }`}
+        >
           <div className="container mx-auto flex items-center justify-between px-4 py-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">

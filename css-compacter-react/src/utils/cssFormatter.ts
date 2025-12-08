@@ -61,7 +61,18 @@ const collapseWhitespacePreserveTopLevelComments = (css: string): string => {
 };
 
 export const tightenSymbols = (css: string): string =>
-  css.replace(/\s*([{}:;,>~+()\[\]=])\s*/g, '$1');
+  css.replace(/\s*([{}:;,>~+()\[\]=])\s*/g, (match, symbol, offset, str) => {
+    if (symbol === ']') {
+      // Preserve a descendant combinator if whitespace originally existed after a closing bracket.
+      const nextNonSpaceMatch = str.slice(offset + match.length).match(/\S/);
+      const nextNonSpace = nextNonSpaceMatch ? nextNonSpaceMatch[0] : '';
+      if (/[.#a-zA-Z0-9_-]/.test(nextNonSpace)) {
+        return '] ';
+      }
+    }
+
+    return symbol;
+  });
 
 export const trimSemicolonBeforeBrace = (css: string): string => css.replace(/;\s*}/g, '}');
 
@@ -433,6 +444,14 @@ export const formatCss = (input: string, options: FormatterOptions): string => {
 
   const shouldCollapseWhitespace = options.collapseWhitespace || options.outputMode === 'minify';
   const shouldTightenSymbols = options.tightenSymbols || options.outputMode === 'minify';
+  const attributeDescendantCombos =
+    shouldTightenSymbols || options.outputMode === 'minify'
+      ? null
+      : new Set(
+          Array.from(input.matchAll(/(\[[^\]]+\])\s+([.#][\w-]+)/g)).map(
+            ([, attr, next]) => `${attr}>>${next}`,
+          ),
+        );
 
   if (options.removeComments) css = stripComments(css);
   if (options.unitMode === 'px2rem') {
@@ -448,15 +467,25 @@ export const formatCss = (input: string, options: FormatterOptions): string => {
   if (shouldTightenSymbols) css = tightenSymbols(css);
   if (options.trimSemicolon) css = trimSemicolonBeforeBrace(css);
 
+  const restoreDescendantSpacing = (text: string): string => {
+    if (shouldTightenSymbols || !attributeDescendantCombos?.size) return text;
+    return text.replace(
+      /(\[[^\]]+\])\s*([.#][\w-]+)/g,
+      (match, attr, next) =>
+        attributeDescendantCombos.has(`${attr}>>${next}`) ? `${attr} ${next}` : match,
+    );
+  };
+
   const formatted = formatBlocks(css, options).trim();
+  const restored = restoreDescendantSpacing(formatted);
 
   if (options.outputMode === 'single-line') {
-    return formatted
+    return restored
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
       .join('\n');
   }
 
-  return formatted;
+  return restored;
 };

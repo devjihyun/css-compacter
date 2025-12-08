@@ -6,7 +6,14 @@
       "use": "@vercel/static-build"
     }
   ],
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite"
+  "installCommand": "cd css-compacter-react && npm install",
+  "buildCommand": "cd css-compacter-react && npm run build",
+  "outputDirectory": "css-compacter-react/dist",
+  "framework": "vite",
+  "routes": [
+    {
+      "src": "/.*",
+      "dest": "index.html"
+    }
+  ]
 }

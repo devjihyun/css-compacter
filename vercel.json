@@ -2,18 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "css-compacter-react/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build"
     }
   ],
-  "installCommand": "cd css-compacter-react && npm install",
-  "buildCommand": "cd css-compacter-react && npm run build",
-  "outputDirectory": "css-compacter-react/dist",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "framework": "vite",
   "routes": [
     {
       "src": "/.*",
-      "dest": "index.html"
+      "dest": "/index.html"
     }
   ]
 }

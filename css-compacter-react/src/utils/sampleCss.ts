@@ -1,50 +1,101 @@
-export const sampleCss = `/* hero block */
-.hero {
-  color: #222;
-  padding: 24px 32px;
-  margin: 0 0 24px 0;
-  border: 1px solid #ccc;
-  background: linear-gradient(135deg, #fff, #f5f7fb);
-  font-size: 18px; /* convert me */
-  line-height: 1.6;
-  --gap: 12px;
+export const sampleCss = `
+/* --- group selector --- */
+h1,
+h2 , 
+.title {
+    color : #333 ;
+    margin-bottom: 12px ;;
 }
 
-.hero .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 16px;
-  gap: var(--gap);
-  text-decoration: none;
-  background: #0066ff;
-  color: #fff;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+/* --- descendant selector --- */
+#main-area   .content-box   {
+    padding: 20px 30px ;
+    background: #f9f9f9  ; ;
 }
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
-  padding: 32px;
+/* --- attribute selector (exact match) --- */
+input[type="text"]   {
+    border :1px solid #ccc ;
+    padding :8px 12px  ;  ;
 }
 
-.card {
-  border-radius: 18px;
-  background: #101521;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 20px 22px;
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+/* --- attribute selector (starts-with) --- */
+a[href^="https://"] {
+    color : blue ;
+    text-decoration : underline ;;
 }
 
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.32);
+/* --- pseudo-class + pseudo-element --- */
+.button:hover::after {
+    content : " →" ;
+    margin-left :4px  ; 
+    opacity:0.8;;
 }
 
-.card h3 {
-  margin: 0 0 12px 0;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
+/* --- child selector --- */
+.list > li {
+    padding:5px 0 ;
+    border-bottom :1px solid #eee ;;
+}
+
+/* --- adjacent sibling selector --- */
+.list-item + .list-item {
+    margin-top :10px ;
+}
+
+/* --- attribute selector + ID + class (이어붙이는 형태) --- */
+.card[data-active="true"]#featured.special-type {
+    background : #eaf4ff ;
+    border :2px solid #7ab3e6  ; ;
+    padding :16px 20px ;
+}
+
+/* --- attribute selector + class 여러개 이어붙임 --- */
+.card[data-active="true"].is-open.is-highlighted {
+    background:#fff7e8 ;
+    color:#444  ;  ;
+    box-shadow :0 2px 6px rgba(0,0,0,.15) ;
+}
+
+/* --- ID 먼저 등장 후 attribute 붙여쓰기 --- */
+#promoCard.card[data-active="true"] {
+    border-color:#ff8844 ;
+    transform: translateY(-2px)  ; ;
+}
+
+/* --- attribute selector 뒤에 공백 후 ID 선택자 (후손 선택자) --- */
+.card[data-active="true"]   #featured {
+    background : #eef7ff ;
+    padding :12px 18px ;; 
+}
+
+/* --- attribute selector 뒤에 공백 후 class 선택자 --- */
+.card[data-active="true"]   .special-type {
+    color : #446688 ;
+    font-weight : bold ; ;
+}
+
+/* --- more deep descendant chain --- */
+.card[data-active="true"]   .info-box   .title {
+    font-size:20px ;
+    margin-bottom :6px ;;
+}
+
+/* --- attribute + 공백 + ID + pseudo-class --- */
+.card[data-active="true"]   #badge:hover {
+    background:#ffddaa ;
+    border-color:#ff9900 ; ;
+}
+
+/* --- attribute + 공백 + 클래스 + pseudo-element --- */
+.card[data-active="true"]   .tag::before {
+    content:"#";
+    color:#999 ; ;
+}
+
+/* --- universal selector --- */
+*  {
+    box-sizing: border-box ;  ; 
+}
+
 }`;

@@ -1,2 +1,0 @@
-# css-compacter
-css compacter

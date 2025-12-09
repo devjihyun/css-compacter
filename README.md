@@ -58,6 +58,17 @@ css-compacter-react
    npm run preview
    ```
 
+## 오프라인 배포 (정적 웹앱)
+
+- `vite.config.ts`의 `base: "./"`로 설정해 파일:// 또는 로컬 서버에서도 자산 경로가 깨지지 않습니다.
+- 빌드: `npm run build` → `dist/` 폴더 생성.
+- 전달: `dist/` 폴더를 그대로 전달하거나 `zip` 후 공유합니다.
+- 실행:
+  - 로컬 서버(권장): `cd dist && python3 -m http.server 4173` 후 `http://localhost:4173` 접속. (`python`이 없으면 `python3` 사용)
+  - 대안: `npx serve dist --listen 4173 --single`(SPA fallback) 또는 `npx http-server dist -p 4173`
+  - 파일 직접 열기: `dist/index.html` 더블클릭(브라우저 CORS 정책에 따라 일부 API 호출 시 문제될 수 있지만, 현재 앱은 외부 API가 없습니다).
+- 캐시/업데이트: 브라우저 캐시로 오래된 자산이 남으면 `강력 새로고침`(Cmd+Shift+R)으로 갱신합니다.
+
 ## Usage
 
 - 왼쪽 편집기에 CSS를 입력하거나 `CSS 열기` 버튼으로 `.css` 파일을 불러옵니다.
@@ -65,6 +76,22 @@ css-compacter-react
 - 단위 변환(px↔rem), 주석 제거, 공백 축소, 기호 간격 정리, 속성 정렬(Concentric / Category) 등의 옵션을 즉시 토글할 수 있습니다.
 - `입↔출 교체`는 입력과 출력을 서로 바꾸며, `초기화`는 입력/출력과 옵션을 초기값으로 되돌립니다.
 - `.compact.css 저장` 버튼으로 현재 결과를 파일로 다운로드할 수 있습니다.
+
+## 배포 및 실행 가이드
+
+- 로컬 개발: `npm install` → `npm run dev` 후 `http://localhost:3000` 접속.
+- 프로덕션 빌드 미리보기: `npm run build && npm run preview` (`http://localhost:4173`).
+- 오프라인 웹앱 배포:
+  1. `npm run build`로 `dist/` 생성.
+  2. `dist/`를 그대로 전달(또는 zip) 후 로컬에서 실행.
+  3. 권장 실행: `cd dist && python3 -m http.server 4173` → 브라우저에서 `http://localhost:4173` 접속. (외부 API 의존 없음)
+  4. 대안: `npx serve dist --listen 4173 --single`(SPA fallback) 또는 `npx http-server dist -p 4173`
+  5. 루트에서 실행할 때는 `npx serve . --listen 4173 --single`처럼 `--single` 옵션을 꼭 사용해 SPA fallback을 켜주세요.
+  - 404 발생 시: 실행 위치가 `dist/`인지 확인하고, `--single` 옵션(SPA fallback)을 켭니다.
+- Vercel 배포(이미 동작 확인):
+  - `@vercel/static-build` 설정 사용. `installCommand: "npm install"`, `buildCommand: "npm run build"`, `outputDirectory: "dist"`.
+  - 라우팅은 `vercel.json`의 `routes` 설정으로 SPA fallback(`/index.html`) 적용.
+- 오프라인 전용 자세한 가이드는 `OFFLINE_GUIDE.md`를 참고하세요.
 
 ## Milestone Snapshot
 
